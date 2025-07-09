@@ -44,7 +44,7 @@ def main():
     X_test = scaler.transform(X_test)
     
     model = train_model(X_train, y_train)
-    save_model(model, 'disorder_detection_model.pkl')
+    save_model(model, 'disorder_detection_model_LogisticRegression.pkl')
     
     y_pred = model.predict(X_test)
     print(confusion_matrix(y_test, y_pred))
