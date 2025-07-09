@@ -5,14 +5,15 @@ from sklearn.metrics import classification_report, confusion_matrix, precision_s
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+from imblearn.over_sampling import SMOTE
 
 file_path = '../data/Sleep_health_and_lifestyle_dataset.csv'
+
 def load_data(file_path):
     df = pd.read_csv(file_path)
     return df
 
 def preprocess_data(df):
-    # Example preprocessing steps
     # Transform NaN values in 'Sleep Disorder' column to "Normal"
     df['Sleep Disorder'] = df['Sleep Disorder'].where(df['Sleep Disorder'].notna(), "Normal")
     df = df.dropna()  # Remove missing values
@@ -30,11 +31,17 @@ def save_model(model, filename):
     joblib.dump(model, filename)
 
 def main():
-    filepath = '../data/Sleep_health_and_lifestyle_dataset.csv'  # Update with your dataset path
     df = load_data(file_path)
     X, y = preprocess_data(df)
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Apply SMOTE after encoding
+    smote = SMOTE(random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    #print("Class distribution after SMOTE:")
+    #print(pd.Series(y_resampled).value_counts())
+
+    X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
     
     model = train_model(X_train, y_train)
     save_model(model, 'disorder_detection_model_RandomForest.pkl')
@@ -46,7 +53,6 @@ def main():
     # Calculate metrics
     Precision = precision_score(y_test, y_pred, average='weighted')
     Sensitivity_recall = recall_score(y_test, y_pred, average='weighted')
-    # For multiclass, specificity is not directly available; here is a workaround for binary classification:
     if len(model.classes_) == 2:
         Specificity = recall_score(y_test, y_pred, pos_label=model.classes_[0])
     else:
@@ -54,13 +60,11 @@ def main():
     F1_score = f1_score(y_test, y_pred, average='weighted')
     Accuracy = accuracy_score(y_test, y_pred)
 
-
-    #metrics
-    print("Accuracy: ",Accuracy)
-    print("Precision: ",Precision)
-    print("Sensitivity_recall: ",Sensitivity_recall)
-    print("Specificity: ",Specificity)
-    print("F1_score: ",F1_score)
+    print("Accuracy: ", Accuracy)
+    print("Precision: ", Precision)
+    print("Sensitivity_recall: ", Sensitivity_recall)
+    print("Specificity: ", Specificity)
+    print("F1_score: ", F1_score)
 
     # Plot confusion matrix
     cm = confusion_matrix(y_test, y_pred)
@@ -69,9 +73,8 @@ def main():
                 xticklabels=model.classes_, yticklabels=model.classes_)
     plt.xlabel('Predicted')
     plt.ylabel('Actual')
-    plt.title('Confusion Matrix')
-    #plt.show()
-    plt.savefig('confusion_matrix.png')
+    plt.title('Confusion Matrix from Random Forest Classifier')
+    plt.savefig('confusion_matrix_RandomForest.png')
 
 if __name__ == "__main__":
     main()
